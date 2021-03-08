@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mobile_ads_sample/ad_state.dart';
 import 'package:flutter_mobile_ads_sample/data.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  runApp(MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  final initFuture = MobileAds.instance.initialize();
+  final adState = AdState(initFuture);
+
+  runApp(
+    Provider.value(
+      value: adState,
+      builder: (context, child) => MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -25,14 +37,50 @@ class ListScreen extends StatefulWidget {
 }
 
 class _ListScreenState extends State<ListScreen> {
+  BannerAd banner;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    print('didChangeDependencies()');
+    final adState = Provider.of<AdState>(context);
+    adState.initialization.then((status) {
+      setState(() {
+        banner = BannerAd(
+          size: AdSize.banner,
+          adUnitId: adState.bannerAdUnitId,
+          request: AdRequest(),
+          listener: adState.adListener,
+        )..load();
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Google Mobile Ads SDK Demo'),
       ),
-      body: ListView.builder(
-          itemBuilder: (context, index) => ItemRow(widget.items[index])),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+                itemCount: widget.items.length,
+                itemBuilder: (context, index) => ItemRow(widget.items[index])),
+          ),
+          if (banner == null)
+            SizedBox(
+              height: 50,
+            )
+          else
+            Container(
+                height: 50,
+                child: AdWidget(
+                  ad: banner,
+                ))
+        ],
+      ),
     );
   }
 }
