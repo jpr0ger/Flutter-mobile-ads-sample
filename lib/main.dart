@@ -37,7 +37,13 @@ class ListScreen extends StatefulWidget {
 }
 
 class _ListScreenState extends State<ListScreen> {
-  BannerAd banner;
+  List<Object> itemList;
+
+  @override
+  void initState() {
+    super.initState();
+    itemList = List.from(widget.items);
+  }
 
   @override
   void didChangeDependencies() {
@@ -46,12 +52,17 @@ class _ListScreenState extends State<ListScreen> {
     final adState = Provider.of<AdState>(context);
     adState.initialization.then((status) {
       setState(() {
-        banner = BannerAd(
-          size: AdSize.banner,
-          adUnitId: adState.bannerAdUnitId,
-          request: AdRequest(),
-          listener: adState.adListener,
-        )..load();
+        for (int i = 5; i <= itemList.length; i += 5) {
+          itemList.insert(
+            i,
+            BannerAd(
+              size: AdSize.banner,
+              adUnitId: adState.bannerAdUnitId,
+              request: AdRequest(),
+              listener: adState.adListener,
+            )..load(),
+          );
+        }
       });
     });
   }
@@ -62,25 +73,19 @@ class _ListScreenState extends State<ListScreen> {
       appBar: AppBar(
         title: Text('Google Mobile Ads SDK Demo'),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-                itemCount: widget.items.length,
-                itemBuilder: (context, index) => ItemRow(widget.items[index])),
-          ),
-          if (banner == null)
-            SizedBox(
-              height: 50,
-            )
-          else
-            Container(
+      body: ListView.builder(
+          itemCount: itemList.length,
+          itemBuilder: (context, index) {
+            if (itemList[index] is DataItem) {
+              return ItemRow(itemList[index] as DataItem);
+            } else {
+              return Container(
                 height: 50,
-                child: AdWidget(
-                  ad: banner,
-                ))
-        ],
-      ),
+                color: Colors.black,
+                child: AdWidget(ad: itemList[index] as BannerAd),
+              );
+            }
+          }),
     );
   }
 }
